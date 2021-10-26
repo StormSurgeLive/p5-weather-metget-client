@@ -1,0 +1,6 @@
+Revision history for Perl extension Weather::MetGet::Client.
+
+0.01  Tue Oct 26 00:52:24 2021
+	- original version; created by h2xs 1.23 with options
+		-AX Weather::MetGet::Client
+

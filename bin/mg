@@ -1,0 +1,72 @@
+#!/usr/bin/env perl
+
+package bin::mc;
+
+use strict;
+use warnings;
+use Config::Tiny ();
+use Util::H2O qw/h2o/;
+use Getopt::Long qw/GetOptionsFromArray/;
+use Weather::MetGet::Client ();
+
+my $BASE_URL = $ENV{METGET_BASE_URL} // q{https://o4hrmumea3.execute-api.us-east-1.amazonaws.com/metget-stack01-development};
+my $API_KEY  = $ENV{METGET_API_KEY};
+
+use constant {
+    EXIT_SUCCESS => 0,
+    EXIT_ERROR   => 1,
+};
+
+exit __PACKAGE__->run( \@ARGV );
+
+# $ARGV[0] is assumed to be the subcommand, everything else
+# is passed to Getopt::Long; subcommands roughly translate
+# to each MetGet "end point"; e.g., "status"
+
+sub run {
+    my ( $self, $argv ) = @_;
+
+    if ( not $API_KEY ) {
+      warn qq{API Key not defined ...};
+      return EXIT_ERROR;
+    }
+
+    my $subcommand = shift @$argv;
+
+    # dispatch table for sub commands
+    my $subcommands = {
+        status => \&status,
+    };
+
+    my $opts = {};
+    my $ret  = GetOptionsFromArray( $argv, $opts, qw/config=s/ );
+
+    return $self->$subcommand( $argv, $opts );
+}
+
+sub status {
+    my ( $self, $opts ) = @_;
+    my $metget = Weather::MetGet::Client->new( apikey => $API_KEY, baseurl => $BASE_URL );
+    my $response = $metget->status;
+    print $response;
+}
+
+1;
+
+__END__
+
+=head1 NAME
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=head1 OPTIONS
+
+=head2 Required
+
+=head2 Optional
+
+=head1 ENVIRONMENT
+
+=head1 LICENSE & COPYRIGHT
