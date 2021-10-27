@@ -6,6 +6,8 @@ use warnings;
 use HTTP::Tiny ();
 use Util::H2O qw/h2o/;
 
+our $VERSION = q{0.789};
+
 sub new {
     my $pkg  = shift;
     my %self = @_;

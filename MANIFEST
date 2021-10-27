@@ -1,6 +1,0 @@
-Changes
-Makefile.PL
-MANIFEST
-README
-t/Weather-MetGet-Client.t
-lib/Weather/MetGet/Client.pm

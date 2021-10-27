@@ -39,12 +39,33 @@ sub run {
     # add getters
     h2o $opts, qw/help/;
 
-    my $config;
-    if ( $opts->config and -e $opts->config ) {
-        $config = Config::Tiny->read( $opts->config );
+    # exit in error if configuration file is not found
+    if ( not $opts->config or not -e $opts->config ) {
+        my $file = ( $opts->config ) ? $opts->config : q{file not found};
+        print STDERR qq{Fatal error - can't find configuration file: "$file".\n};
+        return EXIT_ERROR;
     }
 
+    # this gives $config from Config::Tiny accessors, but it's not
+    # an ideal idiom or construct
+    my $config = h2o -recurse, { %{ Config::Tiny->read( $opts->config ) } };
     return $self->$subcommand( $opts, $config );
+}
+
+# Subcommand handlers are defined below this line, each subcommand should have
+# a method that prints out "help" whenever the --help flag is passed
+
+sub status {
+    my ( $self, $opts, $config ) = @_;
+
+    # show help and exit, if set
+    return $self->help_status if $opts->help;
+
+    my @OPTIONS = ( apikey => $config->auth->apikey, baseurl => $config->auth->baseurl );
+    my $metget  = Weather::MetGet::Client->new(@OPTIONS);
+
+    print $metget->status;
+    return EXIT_SUCCESS;
 }
 
 sub help_status {
@@ -62,19 +83,6 @@ Options:
 
 };
     return EXIT_ERROR;
-}
-
-sub status {
-    my ( $self, $opts, $config ) = @_;
-
-    # show help and exit, if set
-    return $self->help_status if $opts->help;
-
-    my @OPTIONS = ( apikey => $config->{auth}->{apikey}, baseurl => $config->{auth}->{baseurl} );
-    my $metget  = Weather::MetGet::Client->new(@OPTIONS);
-
-    print $metget->status;
-    return EXIT_SUCCESS;
 }
 
 1;
