@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-package bin::mc;
+package bin::mg;
 
 use strict;
 use warnings;
