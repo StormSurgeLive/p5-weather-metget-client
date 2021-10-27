@@ -49,6 +49,26 @@ API client implementing some set of C<MetGet> service calls,
 used primarily to support the commandline client included in
 this distribution, C<mg>.
 
+=head2 API Specification
+
+L<https://app.swaggerhub.com/apis/zcobell-dev/MetGet/0.0.1#/info>
+
+=head2 Supported Endpoints
+
+This module is a work in progress and currently experimental. It
+currently only supports C</status>, but in order to be actually
+useful, will need to support the C</build> endpoint, the checking
+of file C<readiness>, and the downloading of these files.
+
+=head2 General Workflow
+
+The process by which this service works is:
+
+A POST request to make files available (blended or whatnot) are  made
+via the C</build> endpoint. In return, JSON is returned and provides
+links from which to download the readied files at some point in the
+future.
+
 =head1 LICENSE AND COPYRIGHT
 
 This file is part of the ADCIRC Surge Guidance System (ASGS).
