@@ -9,12 +9,12 @@ use Util::H2O qw/h2o/;
 use Getopt::Long qw/GetOptionsFromArray/;
 use Weather::MetGet::Client ();
 
-my $BASE_URL = $ENV{METGET_BASE_URL} // q{https://o4hrmumea3.execute-api.us-east-1.amazonaws.com/metget-stack01-development};
-my $API_KEY  = $ENV{METGET_API_KEY};
+my $HOME   = ( getpwuid $< )[7];
+my $CONFIG = qq{$HOME/.metgetrc};
 
 use constant {
     EXIT_SUCCESS => 0,
-    EXIT_ERROR   => 1,
+    EXIT_ERROR   => 255,
 };
 
 exit __PACKAGE__->run( \@ARGV );
@@ -26,11 +26,6 @@ exit __PACKAGE__->run( \@ARGV );
 sub run {
     my ( $self, $argv ) = @_;
 
-    if ( not $API_KEY ) {
-      warn qq{API Key not defined ...};
-      return EXIT_ERROR;
-    }
-
     my $subcommand = shift @$argv;
 
     # dispatch table for sub commands
@@ -38,17 +33,48 @@ sub run {
         status => \&status,
     };
 
-    my $opts = {};
-    my $ret  = GetOptionsFromArray( $argv, $opts, qw/config=s/ );
+    my $opts = { config => $CONFIG };
+    my $ret  = GetOptionsFromArray( $argv, $opts, qw/config=s help/ );
 
-    return $self->$subcommand( $argv, $opts );
+    # add getters
+    h2o $opts, qw/help/;
+
+    my $config;
+    if ( $opts->config and -e $opts->config ) {
+        $config = Config::Tiny->read( $opts->config );
+    }
+
+    return $self->$subcommand( $opts, $config );
+}
+
+sub help_status {
+    print STDERR qq{
+Usage:
+  mg status [--config] [--help]
+
+Description:
+  Command issues a GET to the "/status" endpoint of MetGet's service, then
+  dumps the raw JSON to STDOUT for additional processing.
+
+Options:
+  --config <file>   specify configuration file (defaults to \$HOME/.metgetrc
+  --help            this help
+
+};
+    return EXIT_ERROR;
 }
 
 sub status {
-    my ( $self, $opts ) = @_;
-    my $metget = Weather::MetGet::Client->new( apikey => $API_KEY, baseurl => $BASE_URL );
-    my $response = $metget->status;
-    print $response;
+    my ( $self, $opts, $config ) = @_;
+
+    # show help and exit, if set
+    return $self->help_status if $opts->help;
+
+    my @OPTIONS = ( apikey => $config->{auth}->{apikey}, baseurl => $config->{auth}->{baseurl} );
+    my $metget  = Weather::MetGet::Client->new(@OPTIONS);
+
+    print $metget->status;
+    return EXIT_SUCCESS;
 }
 
 1;
@@ -57,16 +83,71 @@ __END__
 
 =head1 NAME
 
+mg - commandline client for I<MetGet> service.
+
 =head1 SYNOPSIS
+
+Note: Currently, only the C<status> subcommand is supported.
+
+  # get JSON dump of /status endpoint via STDOUT,
+  mg status > metget-status.json
+
+  mg status | jq
 
 =head1 DESCRIPTION
 
+  mg status [--config] [--help]
+
 =head1 OPTIONS
 
-=head2 Required
+=head2 Subcommand C<status>
 
-=head2 Optional
+B<Required>
+
+I<there are no required options for> the C<status> I<subcommand>.
+
+B<Optional>
+
+=over 4
+
+=item C<--config path/to/config>
+
+Specifies a configuration file other than the default, which is
+C<$HOME/.metgetrc>.
+
+=item C<--help>
+
+Shows information on the subcommand.
+
+=back
+
+=head1 CONFIGURATION
+
+The contents of C<$HOME/.metgetrc> should look like the following, only with proper information:
+
+    [auth]
+    baseurl=https://o4hrmumea3.execute-api.us-east-1.amazonaws.com/metget-stack01-development
+    apikey=xSoMe-AWS-KeYx
 
 =head1 ENVIRONMENT
 
-=head1 LICENSE & COPYRIGHT
+The default location of the configuration file is C<$HOME/.metgetrc>. An
+alternate configuration file can be used for each subcommand using the
+C<--config> option.
+
+=head1 LICENSE AND COPYRIGHT
+
+This file is part of the ADCIRC Surge Guidance System (ASGS).
+
+The ASGS is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+ASGS is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with the ASGS.  If not, see <http://www.gnu.org/licenses/>.
